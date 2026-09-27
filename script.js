@@ -39,6 +39,7 @@ function doLogin(){
   errEl.style.display='none';
   currentEmail = e;
   companyName = acc.company;
+  saveSession();
   enterDashboard();
 }
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -48,6 +49,28 @@ function getAccounts(){
 function saveAccounts(a){
   try{ localStorage.setItem('nexusfma_accounts', JSON.stringify(a)); }catch(e){}
 }
+const SESSION_KEY = 'nexusfma_session';
+const SESSION_TTL = 30 * 24 * 60 * 60 * 1000;
+function saveSession(){
+  try{ localStorage.setItem(SESSION_KEY, JSON.stringify({email:currentEmail, expiresAt:Date.now()+SESSION_TTL})); }catch(e){}
+}
+function clearSession(){
+  try{ localStorage.removeItem(SESSION_KEY); }catch(e){}
+}
+function restoreSession(){
+  let session;
+  try{ session=JSON.parse(localStorage.getItem(SESSION_KEY)||'null'); }catch(e){ clearSession(); return; }
+  if(!session || !session.email || !Number.isFinite(session.expiresAt) || session.expiresAt<=Date.now()){
+    clearSession();
+    return;
+  }
+  const account=getAccounts()[session.email];
+  if(!account){ clearSession(); return; }
+  currentEmail=session.email;
+  companyName=account.company;
+  enterDashboard(false);
+}
+document.addEventListener('DOMContentLoaded', restoreSession, {once:true});
 function doSignup(){
   const c=document.getElementById('su-company').value.trim(), e=document.getElementById('su-email').value.trim(), p=document.getElementById('su-pass').value;
   const errEl=document.getElementById('su-err'), okEl=document.getElementById('su-ok');
@@ -63,6 +86,7 @@ function doSignup(){
   okEl.style.display='block';
   companyName = c;
   currentEmail = e;
+  saveSession();
   document.getElementById('sub-company-name').textContent = `Choose a plan for ${c}`;
   setTimeout(()=>showView('view-sub'), 700);
 }
@@ -77,14 +101,15 @@ function selectPlan(plan){
   document.getElementById('sales-request').href = `mailto:${SALES_EMAIL}?subject=${encodeURIComponent(`Sales inquiry - ${plan} plan`)}&body=${body}`;
   showView('view-payment');
 }
-function enterDashboard(){
-  showView('view-dash');
+function enterDashboard(remember=true){
+  showView('view-dash', remember);
   document.getElementById('topbar-co').textContent = companyName;
   document.getElementById('profile-company').textContent = companyName;
   document.getElementById('profile-email').textContent = currentEmail || 'Signed in';
   document.getElementById('profile-avatar').textContent = companyName.trim().charAt(0).toUpperCase() || 'A';
   buildRules(); buildRemediation(); buildAudit(); startFeed();
   buildIngestionList(); buildTraining(); buildFrameworkRow();
+  buildOptimizationList();
 }
 
 function toggleNav(forceOpen){
@@ -97,6 +122,7 @@ function toggleNav(forceOpen){
 function logout(){
   document.querySelector('.profile-menu').open = false;
   toggleNav(false);
+  clearSession();
   viewHistory = [];
   showView('view-auth', false);
   document.getElementById('li-pass').value='';
@@ -111,6 +137,84 @@ function switchPage(p, el){
   document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
   el.classList.add('active');
   toggleNav(false);
+  const results=document.getElementById('search-results');
+  if(results) results.hidden=true;
+}
+
+function navigateDashboard(page){
+  const navItem=document.querySelector(`.nav-item[data-page="${page}"]`);
+  if(navItem) switchPage(page, navItem);
+}
+function toggleFavorite(){
+  const button=document.getElementById('favorite-policy');
+  const isFavorite=button.getAttribute('aria-pressed')==='true';
+  button.setAttribute('aria-pressed', String(!isFavorite));
+  button.setAttribute('aria-label', isFavorite?'Add Policy Overview to favorites':'Remove Policy Overview from favorites');
+  button.textContent=isFavorite?'☆':'★';
+}
+const optimizationSuggestions=[
+  {title:'Remove 1,847 unused rules', detail:'No matching traffic observed in 90 days', risk:'low'},
+  {title:'Consolidate 312 redundant rules', detail:'Equivalent policy coverage detected', risk:'medium'},
+  {title:'Review 96 overly permissive rules', detail:'Broad source or destination ranges found', risk:'high'}
+];
+function buildOptimizationList(){
+  const list=document.getElementById('optimization-list');
+  if(!list) return;
+  list.innerHTML=optimizationSuggestions.map((suggestion,index)=>`
+    <div class="optimization-item">
+      <span><strong>${suggestion.title}</strong><small>${suggestion.detail}</small></span>
+      <button type="button" onclick="reviewOptimization(${index})">Review</button>
+    </div>`).join('');
+}
+function reviewOptimization(index){
+  const suggestion=optimizationSuggestions[index];
+  if(!suggestion) return;
+  navigateDashboard('rules');
+  const rule=rules.find(item=>item.risk===suggestion.risk);
+  if(rule){
+    explainRule(rule.id);
+    document.getElementById('modal-body').textContent=`${suggestion.title}: ${suggestion.detail}. Review this ${rule.risk}-risk sample policy before making changes.`;
+  }
+}
+function searchDashboard(query){
+  const results=document.getElementById('search-results');
+  results.replaceChildren();
+  const term=query.trim().toLowerCase();
+  if(!term){ results.hidden=true; return; }
+  const matches=[
+    ...rules.filter(rule=>`${rule.id} ${rule.vendor} ${rule.action} ${rule.zone}`.toLowerCase().includes(term)).map(rule=>({type:'rule',id:rule.id,title:`${rule.action} · ${rule.zone}`,detail:`${rule.id} · ${rule.vendor}`})),
+    ...ingestedDevices.filter(device=>`${device.name} ${device.vendor} ${device.model} ${device.serial}`.toLowerCase().includes(term)).map(device=>({type:'device',name:device.name,title:device.name,detail:`${device.vendor} · ${device.model}`}))
+  ].slice(0,8);
+  if(!matches.length){
+    const empty=document.createElement('div');
+    empty.className='search-result';
+    empty.textContent='No matching policies or devices';
+    results.append(empty);
+  }
+  matches.forEach(match=>{
+    const button=document.createElement('button');
+    button.type='button';
+    button.className='search-result';
+    button.setAttribute('role','option');
+    const title=document.createElement('strong');
+    title.textContent=match.title;
+    const detail=document.createElement('span');
+    detail.textContent=match.detail;
+    button.append(title,detail);
+    button.addEventListener('click',()=>{
+      if(match.type==='rule'){
+        navigateDashboard('rules');
+        explainRule(match.id);
+      }else{
+        navigateDashboard('compliance');
+        const ingestTab=document.querySelector('.subtab-btn');
+        if(ingestTab) switchSub('ingest',ingestTab);
+      }
+      results.hidden=true;
+    });
+    results.append(button);
+  });
+  results.hidden=false;
 }
 
 /* ---------- MOCK DATA ---------- */

@@ -32,22 +32,26 @@
       <div id="pane-login">
         <h2>Welcome back</h2>
         <p class="sub">Log in to your security operations console.</p>
-        <div class="field"><label>Work email</label><input type="email" id="li-email" placeholder="you@company.com"></div>
-        <div class="field"><label>Password</label><input type="password" id="li-pass" placeholder="••••••••"></div>
-        <div class="err" id="li-err">Enter an email and password to continue.</div>
-        <button class="btn-primary" onclick="doLogin()">Log in</button>
+        <form id="login-form" onsubmit="doLogin();return false;">
+          <div class="field"><label for="li-email">Work email</label><input type="email" id="li-email" name="username" autocomplete="username" placeholder="you@company.com" required></div>
+          <div class="field"><label for="li-pass">Password</label><input type="password" id="li-pass" name="password" autocomplete="current-password" placeholder="••••••••" required></div>
+          <div class="err" id="li-err">Enter an email and password to continue.</div>
+          <button class="btn-primary" type="submit">Log in</button>
+        </form>
         <p class="auth-foot">No account yet? <a href="#" onclick="switchTab('signup');return false;" style="color:var(--accent); font-weight:600;">Create one</a> — you can log back in with it right away.</p>
       </div>
 
       <div id="pane-signup" style="display:none;">
         <h2>Create your company ID</h2>
         <p class="sub">New companies choose a plan right after this step.</p>
-        <div class="field"><label>Company name</label><input type="text" id="su-company" placeholder="Acme Networks Inc."></div>
-        <div class="field"><label>Work email</label><input type="email" id="su-email" placeholder="you@company.com"></div>
-        <div class="field"><label>Password</label><input type="password" id="su-pass" placeholder="Create a password"></div>
-        <div class="err" id="su-err">Fill in all fields to create your ID.</div>
-        <div class="ok-msg" id="su-ok">Account created! You can now log in with this email and password.</div>
-        <button class="btn-primary" onclick="doSignup()">Create ID & continue</button>
+        <form id="signup-form" onsubmit="doSignup();return false;">
+          <div class="field"><label for="su-company">Company name</label><input type="text" id="su-company" name="organization" autocomplete="organization" placeholder="Acme Networks Inc." required></div>
+          <div class="field"><label for="su-email">Work email</label><input type="email" id="su-email" name="username" autocomplete="username" placeholder="you@company.com" required></div>
+          <div class="field"><label for="su-pass">Password</label><input type="password" id="su-pass" name="password" autocomplete="new-password" placeholder="Create a password" required></div>
+          <div class="err" id="su-err">Fill in all fields to create your ID.</div>
+          <div class="ok-msg" id="su-ok">Account created! You can now log in with this email and password.</div>
+          <button class="btn-primary" type="submit">Create ID & continue</button>
+        </form>
         <p class="auth-foot">You'll be redirected to subscription plans next. Your login is saved for next time.</p>
       </div>
     </div>
@@ -162,11 +166,12 @@
     <div class="rail" id="dashboard-nav">
       <button class="back-button dash-back" id="dash-back" type="button" aria-label="Go to previous page" title="Go back" onclick="goBack()" hidden>←</button>
       <div class="brand-mark"><div class="dot"></div><span>NexusFMA</span></div>
-      <button class="nav-item active" onclick="switchPage('overview',this)"><span class="ic">◇</span>Overview</button>
-      <button class="nav-item" onclick="switchPage('compliance',this)"><span class="ic">⛁</span>Compliance Engine</button>
-      <button class="nav-item" onclick="switchPage('rules',this)"><span class="ic">▤</span>Rules</button>
-      <button class="nav-item" onclick="switchPage('remediation',this)"><span class="ic">⚙</span>Remediation</button>
-      <button class="nav-item" onclick="switchPage('audit',this)"><span class="ic">◫</span>Audit & Rollback</button>
+      <button class="nav-item active" data-page="overview" onclick="switchPage('overview',this)"><span class="ic">◇</span>Overview</button>
+        <button class="nav-item" data-page="policy" onclick="switchPage('policy',this)"><span class="ic">▤</span>Policy Overview</button>
+      <button class="nav-item" data-page="compliance" onclick="switchPage('compliance',this)"><span class="ic">⛁</span>Compliance Engine</button>
+      <button class="nav-item" data-page="rules" onclick="switchPage('rules',this)"><span class="ic">▤</span>Rules</button>
+      <button class="nav-item" data-page="remediation" onclick="switchPage('remediation',this)"><span class="ic">⚙</span>Remediation</button>
+      <button class="nav-item" data-page="audit" onclick="switchPage('audit',this)"><span class="ic">◫</span>Audit & Rollback</button>
       <div class="rail-foot" id="rail-plan">Plan: Operations</div>
     </div>
     <button class="nav-scrim" id="nav-scrim" aria-label="Close navigation" onclick="toggleNav(false)"></button>
@@ -174,6 +179,12 @@
       <div class="topbar">
         <button class="menu-toggle" id="menu-toggle" aria-label="Open navigation" aria-controls="dashboard-nav" aria-expanded="false" onclick="toggleNav()">☰</button>
         <div class="co"><span class="pulse"></span><span id="topbar-co">Acme Networks Inc.</span></div>
+        <label class="global-search">
+          <span aria-hidden="true">⌕</span>
+          <input id="dashboard-search" type="search" placeholder="Search by rule, device, or IP address" autocomplete="off" oninput="searchDashboard(this.value)" aria-label="Search policies and devices">
+          <kbd>Enter</kbd>
+          <div class="search-results" id="search-results" role="listbox" hidden></div>
+        </label>
         <div class="right">
           <span class="plan-pill" id="topbar-plan">Operations plan</span><span>3 devices · live</span>
           <details class="profile-menu">
@@ -218,6 +229,60 @@
                 <div class="topo-row"><div class="l">Exposed NAT quarantine</div><span class="chip warn">Awaiting approval</span></div>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div class="page policy-overview" id="page-policy">
+          <div class="policy-breadcrumb"><span id="policy-company">Enterprise</span><span>/</span><span>Policy</span><span>/</span><strong>Overview</strong><span class="governed-badge"><i></i>All environments governed</span></div>
+          <div class="policy-title"><div><div class="policy-eyebrow">AI-GOVERNED · LIVE POSTURE</div><h1>Policy Overview <button class="favorite-btn" id="favorite-policy" type="button" aria-label="Add Policy Overview to favorites" aria-pressed="false" onclick="toggleFavorite()">☆</button></h1></div></div>
+          <div class="stats policy-stats">
+            <div class="stat policy-stat"><div class="policy-stat-head"><span class="lbl">Devices managed</span><span class="stat-icon">▣</span></div><div class="val">6,000</div><div class="stat-foot"><span>Network-wide coverage</span><b>+ 124 this quarter</b></div></div>
+            <div class="stat policy-stat"><div class="policy-stat-head"><span class="lbl">Compliance score</span><span class="stat-icon green">◉</span></div><div class="val">98.2%</div><div class="stat-foot"><span>Across mapped frameworks</span><b>+ 2.4 pts</b></div></div>
+            <div class="stat policy-stat"><div class="policy-stat-head"><span class="lbl">Rules analyzed</span><span class="stat-icon orange">＋</span></div><div class="val">1.24M</div><div class="stat-foot"><span>Normalized & evaluated</span><b>Real-time</b></div></div>
+            <div class="stat policy-stat"><div class="policy-stat-head"><span class="lbl">High risk</span><span class="stat-icon red">△</span></div><div class="val danger">12</div><div class="stat-foot"><span>Prioritized for review</span><b>− 26% wk/wk</b></div></div>
+          </div>
+          <div class="policy-grid">
+            <div class="policy-main-column">
+              <section class="panel posture-panel">
+                <div class="section-heading"><div><h3>Policy posture <span class="muted-inline">30-day trend</span></h3><p class="ph-sub">Security Control Index</p></div><span class="chart-legend"><i></i>Security Control Index</span></div>
+                <div class="posture-chart" role="img" aria-label="Security Control Index trending steadily downward over the last 30 days">
+                  <svg viewBox="0 0 800 190" preserveAspectRatio="none" aria-hidden="true">
+                    <defs><linearGradient id="posture-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="var(--accent)" stop-opacity=".16"/><stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
+                    <path class="chart-gridline" d="M0 25H800 M0 70H800 M0 115H800 M0 160H800"/>
+                    <path class="chart-area" d="M0 34 L48 42 L100 29 L151 52 L204 47 L255 70 L308 63 L360 83 L414 94 L466 87 L520 109 L572 119 L625 114 L677 132 L730 142 L800 148 L800 180 L0 180 Z"/>
+                    <path class="chart-line" d="M0 34 L48 42 L100 29 L151 52 L204 47 L255 70 L308 63 L360 83 L414 94 L466 87 L520 109 L572 119 L625 114 L677 132 L730 142 L800 148"/>
+                    <circle class="chart-point" cx="0" cy="34" r="3"/><circle class="chart-point" cx="151" cy="52" r="3"/><circle class="chart-point" cx="308" cy="63" r="3"/><circle class="chart-point" cx="466" cy="87" r="3"/><circle class="chart-point" cx="625" cy="114" r="3"/><circle class="chart-point" cx="800" cy="148" r="3"/>
+                  </svg>
+                  <div class="chart-axis"><span>Jul 1</span><span>Jul 8</span><span>Jul 15</span><span>Jul 22</span><span>Jul 30</span></div>
+                </div>
+              </section>
+              <section class="panel changes-panel">
+                <div class="section-heading"><div><h3>Recent policy changes <span class="muted-inline">Last 24 hours</span></h3></div><button class="text-action" type="button" onclick="navigateDashboard('audit')">View all <span aria-hidden="true">→</span></button></div>
+                <div class="responsive-table"><table class="policy-table"><thead><tr><th>Event</th><th>Date / time</th><th>User</th><th>Changes</th><th>State</th><th>Device</th></tr></thead><tbody>
+                  <tr><td class="rid">#8421</td><td>Jul 23 · 14:02</td><td>j.alvarez</td><td>3</td><td><span class="change-state"><i></i>Published</span></td><td>PA-5520-DC1</td></tr>
+                  <tr><td class="rid">#8419</td><td>Jul 23 · 12:41</td><td>a.patel</td><td>1</td><td><span class="change-state"><i></i>Auto-approved</span></td><td>ASA-EDGE-02</td></tr>
+                  <tr><td class="rid">#8418</td><td>Jul 23 · 11:18</td><td>m.chen</td><td>7</td><td><span class="change-state pending"><i></i>In review</span></td><td>SRX-CORE-01</td></tr>
+                  <tr><td class="rid">#8416</td><td>Jul 23 · 09:53</td><td>automation</td><td>2</td><td><span class="change-state"><i></i>Verified</span></td><td>FGT-DMZ-03</td></tr>
+                </tbody></table></div>
+              </section>
+            </div>
+            <aside class="policy-side-column">
+              <section class="panel readiness-panel">
+                <div class="section-heading"><h3>Compliance readiness</h3><button class="outline-action" type="button" onclick="navigateDashboard('compliance')">Continue</button></div>
+                <div class="readiness-list">
+                  <div class="readiness-row"><span>PCI-DSS 4.0</span><div class="readiness-track"><i style="width:100%"></i></div><b>100%</b><em class="ready-tag">PASS</em></div>
+                  <div class="readiness-row"><span>NIST 800-53</span><div class="readiness-track"><i style="width:92%"></i></div><b>92%</b><em class="review-tag">REVIEW</em></div>
+                  <div class="readiness-row"><span>CIS Benchmarks</span><div class="readiness-track"><i style="width:96%"></i></div><b>96%</b><em class="ready-tag">PASS</em></div>
+                  <div class="readiness-row"><span>HIPAA</span><div class="readiness-track"><i style="width:100%"></i></div><b>100%</b><em class="ready-tag">PASS</em></div>
+                  <div class="readiness-row"><span>ISO 27001</span><div class="readiness-track"><i style="width:91%"></i></div><b>91%</b><em class="review-tag">REVIEW</em></div>
+                </div>
+              </section>
+              <section class="panel optimization-panel">
+                <div class="section-heading"><div><h3>Cleanup & optimization</h3><p class="ph-sub">AI-identified policy improvements</p></div><span class="optimization-badge">AUTOMATED</span></div>
+                <div class="optimization-totals"><div><b>1,847</b><span>Unused rules</span></div><div><b>312</b><span>Redundant</span></div><div><b>96</b><span>Overly permissive</span></div></div>
+                <div id="optimization-list"></div>
+              </section>
+            </aside>
           </div>
         </div>
 
