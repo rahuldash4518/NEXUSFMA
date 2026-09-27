@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NexusFMA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0A0A0F; --surface:#111218; --elev:#16171F; --elev2:#1B1D28;
+  --border:#232430; --border-soft:#1A1B24;
+  --text:#F2F2F5; --dim:#9497A6; --dim2:#6B6E7D;
+  --accent:#7C6FF0; --accent-soft:#7C6FF022; --accent-glow:#7C6FF055;
+  --ok:#2DD4BF; --ok-soft:#2DD4BF1A;
+  --warn:#F5A623; --warn-soft:#F5A6231A;
+  --danger:#F0546B; --danger-soft:#F0546B1A;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){ } }
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%;}
+body{
+  background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif;
+  min-height:100%; overflow-x:hidden;
+}
+.mono{font-family:'JetBrains Mono',monospace;}
+::selection{background:var(--accent-glow);}
+a{color:inherit; text-decoration:none;}
+button{font-family:inherit; cursor:pointer;}
+input{font-family:inherit;}
+
+/* ---------- glow blobs ---------- */
+.glow{position:absolute; border-radius:50%; filter:blur(90px); pointer-events:none; opacity:.55;}
+
+/* ---------- AUTH VIEW ---------- */
+#view-auth{display:flex; min-height:100vh;}
+.auth-left{
+  flex:1.1; position:relative; overflow:hidden; display:flex; flex-direction:column;
+  justify-content:center; padding:64px; background:radial-gradient(circle at 30% 20%, #14121f 0%, var(--bg) 60%);
+  border-right:1px solid var(--border-soft);
+}
+.auth-left .glow.g1{width:420px; height:420px; background:var(--accent); top:-120px; left:-100px;}
+.auth-left .glow.g2{width:340px; height:340px; background:#3F8CFF; bottom:-100px; right:-60px; opacity:.35;}
+.brand-mark{display:flex; align-items:center; gap:10px; position:relative; z-index:2; margin-bottom:56px;}
+.brand-mark .dot{width:9px; height:9px; border-radius:50%; background:var(--accent); box-shadow:0 0 16px var(--accent-glow);}
+.brand-mark span{font-weight:700; font-size:15px; letter-spacing:.2px;}
+.back-button{display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); font-size:21px; line-height:1; transition:background .15s,border-color .15s,transform .15s;}
+.back-button:hover,.back-button:focus-visible{background:var(--accent-soft); border-color:var(--accent); transform:translateX(-2px); outline:none;}
+.back-button[hidden]{display:none;}
+.view-back{position:absolute; top:18px; left:24px; z-index:3;}
+.auth-left h1{position:relative; z-index:2; font-size:40px; font-weight:700; line-height:1.18; max-width:460px; letter-spacing:-.5px;}
+.auth-left p.lede{position:relative; z-index:2; margin-top:18px; color:var(--dim); font-size:15px; max-width:400px; line-height:1.6;}
+.home-pitch{position:relative; z-index:2; max-width:460px; margin-top:48px; padding-left:18px; border-left:2px solid var(--accent);}
+.home-pitch h2{font-size:20px; line-height:1.35; font-weight:600;}
+.home-pitch p{margin-top:8px; color:var(--dim); font-size:14px; line-height:1.6;}
+.topo-row{display:flex; align-items:center; justify-content:space-between; padding:9px 4px; font-size:12.5px; border-bottom:1px solid var(--border-soft);}
+.topo-row:last-child{border-bottom:none;}
+.topo-row .l{display:flex; align-items:center; gap:9px; color:var(--dim);}
+.pulse{width:6px; height:6px; border-radius:50%; background:var(--ok); box-shadow:0 0 8px var(--ok);}
+.pulse.warn{background:var(--warn); box-shadow:0 0 8px var(--warn);}
+.tag-mini{font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--dim2);}
+
+.auth-right{flex:1; display:flex; align-items:center; justify-content:center; padding:40px;}
+.auth-box{width:100%; max-width:380px;}
+.auth-box h2{font-size:24px; font-weight:700; margin-bottom:6px; letter-spacing:-.3px;}
+.auth-box p.sub{color:var(--dim); font-size:13.5px; margin-bottom:32px;}
+.tabs{display:flex; gap:4px; background:var(--elev); border:1px solid var(--border); border-radius:10px; padding:3px; margin-bottom:28px;}
+.tab-btn{flex:1; text-align:center; padding:8px 0; font-size:13px; font-weight:600; color:var(--dim); border-radius:8px; background:transparent; border:none; transition:.15s;}
+.tab-btn.active{background:var(--elev2); color:var(--text); box-shadow:0 1px 0 rgba(255,255,255,.03) inset;}
+.field{margin-bottom:16px;}
+.field label{display:block; font-size:12.5px; color:var(--dim); margin-bottom:7px; font-weight:500;}
+.field input{
+  width:100%; background:var(--elev); border:1px solid var(--border); color:var(--text);
+  padding:11px 13px; border-radius:9px; font-size:14px; outline:none; transition:.15s;
+}
+.field input:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);}
+.btn-primary{
+  width:100%; background:var(--accent); color:#fff; border:none; padding:12px 0; border-radius:9px;
+  font-size:14px; font-weight:600; margin-top:6px; transition:.15s; box-shadow:0 8px 20px -8px var(--accent-glow);
+}
+.btn-primary:hover{filter:brightness(1.08);}
+.auth-foot{margin-top:20px; font-size:12.5px; color:var(--dim2); text-align:center;}
+.err{color:var(--danger); font-size:12.5px; margin-top:-8px; margin-bottom:14px; display:none;}
+
+/* ---------- SUBSCRIPTION VIEW ---------- */
+#view-sub{display:none; min-height:100vh; padding:64px 24px; position:relative; overflow:hidden;}
+#view-sub .glow{width:500px; height:500px; background:var(--accent); top:-200px; left:50%; transform:translateX(-50%); opacity:.25;}
+.sub-head{text-align:center; max-width:560px; margin:0 auto 52px; position:relative; z-index:2;}
+.sub-head .eyebrow{color:var(--accent); font-size:13px; font-weight:600; margin-bottom:14px;}
+.sub-head h1{font-size:32px; font-weight:700; letter-spacing:-.5px; margin-bottom:12px;}
+.sub-head p{color:var(--dim); font-size:14.5px; line-height:1.6;}
+.plans{display:flex; gap:20px; max-width:1080px; margin:0 auto; position:relative; z-index:2; flex-wrap:wrap; justify-content:center; align-items:flex-start;}
+.plan-card{
+  flex:1; min-width:280px; max-width:330px; background:var(--surface); border:1px solid var(--border);
+  border-radius:16px; padding:28px; position:relative; transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+.plan-card:hover{transform:translateY(-5px); border-color:var(--accent); box-shadow:0 18px 36px -22px var(--accent-glow);}
+.plan-card.feat{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent), 0 30px 60px -25px var(--accent-glow);}
+.plan-card .badge{position:absolute; top:-11px; left:24px; background:var(--accent); color:#fff; font-size:10.5px; font-weight:700; padding:4px 10px; border-radius:20px; letter-spacing:.3px;}
+.plan-dot{width:10px; height:10px; border-radius:50%; margin-bottom:14px;}
+.plan-card .pname{font-size:15px; font-weight:700; margin-bottom:4px;}
+.plan-card .pmin{font-size:11.5px; color:var(--dim2); margin-bottom:16px;}
+.plan-card .price{font-size:28px; font-weight:800; letter-spacing:-1px;}
+.plan-card .price span{font-size:12.5px; color:var(--dim2); font-weight:500;}
+.plan-card ul{list-style:none; margin:20px 0 18px; display:flex; flex-direction:column; gap:10px;}
+.plan-card li{font-size:12.5px; color:var(--dim); display:flex; gap:9px; align-items:flex-start; line-height:1.4;}
+.plan-card li:before{content:"✓"; color:var(--ok); font-weight:700; flex-shrink:0;}
+.plan-note{font-size:11.5px; color:var(--dim2); border-top:1px solid var(--border-soft); padding-top:14px; margin-bottom:18px; line-height:1.5;}
+.plan-card button{width:100%; padding:11px 0; border-radius:9px; font-size:13.5px; font-weight:600; border:1px solid var(--border); background:var(--elev2); color:var(--text); transition:transform .18s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease;}
+.plan-card button:hover,.plan-card button:focus-visible{transform:translateY(-2px); border-color:var(--accent); background:var(--accent-soft); box-shadow:0 8px 20px -10px var(--accent-glow); outline:none;}
+.plan-card.feat button{background:var(--accent); border:none; color:#fff;}
+.plan-card.feat button:hover,.plan-card.feat button:focus-visible{background:#9187ff; box-shadow:0 10px 24px -8px var(--accent-glow);}
+.payment-view{display:none; min-height:100vh; padding:64px 24px; position:relative; overflow:hidden;}
+.payment-box{max-width:720px; margin:0 auto; position:relative; z-index:2;}
+.payment-box h1{font-size:30px; margin-bottom:10px;}
+.payment-intro{color:var(--dim); font-size:14px; line-height:1.6; margin-bottom:28px;}
+.payment-summary,.payment-choice{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:22px; margin-bottom:14px;}
+.payment-summary{display:flex; justify-content:space-between; align-items:center; gap:16px;}
+.payment-summary .label,.payment-choice p{color:var(--dim); font-size:13px; line-height:1.6;}
+.payment-summary .selected-plan{font-size:17px; font-weight:700; margin-top:4px;}
+.payment-summary .amount{font-size:14px; font-weight:600; text-align:right;}
+.payment-choice h2{font-size:16px; margin-bottom:7px;}
+.payment-choice a{display:inline-flex; margin-top:16px; padding:10px 14px; border-radius:8px; background:var(--accent); color:#fff; font-size:13px; font-weight:600; transition:filter .18s ease,transform .18s ease;}
+.payment-choice a:hover,.payment-choice a:focus-visible{filter:brightness(1.15); transform:translateY(-2px); outline:2px solid var(--accent); outline-offset:3px;}
+.payment-note{font-size:12px; color:var(--dim2); line-height:1.6; margin-top:20px;}
+.gate-strip{max-width:720px; margin:36px auto 0; position:relative; z-index:2; text-align:center; padding:18px 24px; background:var(--surface); border:1px solid var(--border); border-radius:14px;}
+.gate-strip .gt{font-size:12.5px; font-weight:600; color:var(--text); margin-bottom:10px;}
+.gate-flow{display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; font-family:'JetBrains Mono',monospace; font-size:11px;}
+.gate-flow .seg{display:flex; align-items:center; gap:6px;}
+.gate-flow .k{padding:4px 9px; border-radius:6px; border:1px solid var(--border); color:var(--dim);}
+.gate-flow .k.ok{color:var(--ok); border-color:var(--ok);}
+.gate-flow .k.warn{color:var(--warn); border-color:var(--warn);}
+.gate-flow .k.danger{color:var(--danger); border-color:var(--danger);}
+.gate-flow .arrow{color:var(--dim2);}
+
+/* ---------- DASHBOARD ---------- */
+#view-dash{display:none; min-height:100vh;}
+.shell{display:flex; min-height:100vh;}
+.rail{width:210px; background:var(--surface); border-right:1px solid var(--border-soft); padding:20px 14px; display:flex; flex-direction:column; flex-shrink:0;}
+.rail .dash-back{margin-bottom:18px;}
+.rail .brand-mark{margin-bottom:30px; padding:0 6px;}
+.menu-toggle{display:none; align-items:center; justify-content:center; width:36px; height:36px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); font-size:19px;}
+.nav-scrim{display:none;}
+.nav-item{display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; font-size:13.5px; color:var(--dim); margin-bottom:2px; transition:.12s; border:none; background:none; width:100%; text-align:left;}
+.nav-item:hover{background:var(--elev); color:var(--text);}
+.nav-item.active{background:var(--accent-soft); color:var(--accent);}
+.nav-item .ic{width:15px; text-align:center; font-size:13px;}
+.rail-foot{margin-top:auto; padding:12px 10px; border-top:1px solid var(--border-soft); font-size:12px; color:var(--dim2);}
+.main{flex:1; display:flex; flex-direction:column; min-width:0;}
+.topbar{
+  height:60px; border-bottom:1px solid var(--border-soft); display:flex; align-items:center; justify-content:space-between;
+  padding:0 26px; flex-shrink:0; background:var(--bg);
+}
+.topbar .co{display:flex; align-items:center; gap:10px; font-size:13.5px; font-weight:600;}
+.topbar .co .pulse{background:var(--ok);}
+.topbar .right{display:flex; align-items:center; gap:16px; font-size:12.5px; color:var(--dim);}
+.profile-menu{position:relative;}
+.profile-menu summary{display:flex; align-items:center; gap:8px; list-style:none; cursor:pointer; color:var(--text);}
+.profile-menu summary::-webkit-details-marker{display:none;}
+.profile-avatar{display:grid; place-items:center; width:30px; height:30px; border-radius:50%; background:var(--accent-soft); color:var(--accent); font-size:12px; font-weight:700;}
+.profile-label{font-size:12px; font-weight:600;}
+.profile-dropdown{position:absolute; top:calc(100% + 10px); right:0; z-index:40; width:240px; padding:14px; background:var(--elev); border:1px solid var(--border); border-radius:10px; box-shadow:0 18px 36px rgba(0,0,0,.35);}
+.profile-dropdown strong,.profile-dropdown span{display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.profile-dropdown strong{font-size:13px; margin-bottom:5px;}
+.profile-dropdown span{font-size:11.5px; color:var(--dim); margin-bottom:13px;}
+.profile-dropdown button{width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:7px; background:var(--elev2); color:var(--text); text-align:left; font-size:12px; font-weight:600;}
+.profile-dropdown button:hover,.profile-dropdown button:focus-visible{border-color:var(--accent); color:var(--accent); outline:none;}
+.plan-pill{background:var(--elev2); border:1px solid var(--border); padding:5px 11px; border-radius:20px; font-size:11.5px; color:var(--dim);}
+.content{flex:1; overflow-y:auto; padding:28px;}
+.page{display:none;}
+.page.active{display:block;}
+.pg-head{display:flex; align-items:center; justify-content:between; justify-content:space-between; margin-bottom:22px;}
+.pg-head h1{font-size:20px; font-weight:700; letter-spacing:-.3px;}
+.pg-head p{color:var(--dim); font-size:13px; margin-top:4px;}
+
+.stats{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px;}
+.stat{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px;}
+.stat .lbl{font-size:12px; color:var(--dim); margin-bottom:8px;}
+.stat .val{font-size:24px; font-weight:700; letter-spacing:-.5px;}
+.stat .val.ok{color:var(--ok);} .stat .val.warn{color:var(--warn);} .stat .val.danger{color:var(--danger);}
+
+.grid2{display:grid; grid-template-columns:1.4fr 1fr; gap:16px;}
+.panel{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; margin-bottom:16px;}
+.panel h3{font-size:14px; font-weight:600; margin-bottom:4px;}
+.panel .ph-sub{font-size:12px; color:var(--dim2); margin-bottom:16px;}
+.feed{display:flex; flex-direction:column; gap:10px; max-height:360px; overflow-y:auto;}
+.feed-item{display:flex; gap:10px; align-items:flex-start; font-size:12.5px; padding:9px 10px; border-radius:8px; background:var(--elev);}
+.feed-item .t{font-family:'JetBrains Mono',monospace; color:var(--dim2); font-size:11px; flex-shrink:0; width:64px;}
+.feed-item .m{color:var(--dim);}
+.feed-item .m b{color:var(--text); font-weight:500;}
+
+table{width:100%; border-collapse:collapse; font-size:12.5px;}
+th{text-align:left; color:var(--dim2); font-weight:500; font-size:11px; text-transform:uppercase; letter-spacing:.4px; padding:0 12px 10px; border-bottom:1px solid var(--border-soft);}
+td{padding:11px 12px; border-bottom:1px solid var(--border-soft); vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr.rulerow:hover{background:var(--elev);}
+.vtag{font-family:'JetBrains Mono',monospace; font-size:10.5px; padding:3px 7px; border-radius:5px; background:var(--elev2); color:var(--dim);}
+.chip{font-size:10.5px; font-weight:600; padding:3px 9px; border-radius:20px; display:inline-block;}
+.chip.ok{background:var(--ok-soft); color:var(--ok);}
+.chip.warn{background:var(--warn-soft); color:var(--warn);}
+.chip.danger{background:var(--danger-soft); color:var(--danger);}
+.riskdot{width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:6px;}
+.rid{font-family:'JetBrains Mono',monospace; color:var(--dim);}
+.explain-btn{background:none; border:1px solid var(--border); color:var(--dim); font-size:11px; padding:5px 10px; border-radius:7px;}
+.explain-btn:hover{border-color:var(--accent); color:var(--accent);}
+
+.rem-card{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; margin-bottom:14px;}
+.rem-top{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;}
+.rem-top h4{font-size:14px; font-weight:600; margin-bottom:5px;}
+.rem-top .vtag{margin-right:6px;}
+.rem-desc{font-size:12.5px; color:var(--dim); line-height:1.6; margin-bottom:14px;}
+.rem-steps{font-size:11.5px; color:var(--dim2); font-family:'JetBrains Mono',monospace; background:var(--elev); border-radius:8px; padding:10px 12px; margin-bottom:14px; line-height:1.8;}
+.rem-actions{display:flex; gap:8px; align-items:center;}
+.btn-sm{font-size:12px; font-weight:600; padding:8px 14px; border-radius:8px; border:1px solid var(--border); background:var(--elev2); color:var(--text);}
+.btn-sm.primary{background:var(--accent); border:none; color:#fff;}
+.btn-sm.ok{background:var(--ok-soft); border:1px solid var(--ok); color:var(--ok);}
+.btn-sm.danger-o{background:var(--danger-soft); border:1px solid var(--danger); color:var(--danger);}
+.status-line{font-size:11.5px; color:var(--dim2); margin-left:auto;}
+
+.modal-bg{display:none; position:fixed; inset:0; background:rgba(6,6,10,.7); backdrop-filter:blur(4px); z-index:50; align-items:center; justify-content:center;}
+.modal-bg.show{display:flex;}
+.modal{width:480px; max-width:90vw; background:var(--elev); border:1px solid var(--border); border-radius:16px; padding:26px; box-shadow:0 40px 80px -20px rgba(0,0,0,.6);}
+.modal h3{font-size:15px; font-weight:600; margin-bottom:4px;}
+.modal .rid-line{font-size:11.5px; color:var(--dim2); margin-bottom:16px; font-family:'JetBrains Mono',monospace;}
+.ai-badge{display:inline-flex; align-items:center; gap:6px; background:var(--accent-soft); color:var(--accent); font-size:11px; font-weight:600; padding:4px 10px; border-radius:20px; margin-bottom:14px;}
+.modal p.body{font-size:13px; color:var(--dim); line-height:1.7; margin-bottom:18px;}
+.modal-close{width:100%; padding:10px 0; border-radius:9px; border:1px solid var(--border); background:var(--elev2); color:var(--text); font-size:13px; font-weight:600;}
+
+@media(max-width:900px){
+  .auth-left{display:none;}
+  .grid2{grid-template-columns:1fr;}
+  .stats{grid-template-columns:repeat(2,1fr);}
+  .rail{position:fixed; z-index:30; height:100vh; transform:translateX(-100%); transition:.2s;}
+  .rail.open{transform:translateX(0);}
+  .menu-toggle{display:inline-flex; flex-shrink:0;}
+  .nav-scrim.show{display:block; position:fixed; inset:0; z-index:29; border:0; background:rgba(0,0,0,.5);}
+  .topbar{padding:0 16px; gap:12px;}
+  .topbar .right{gap:10px;}
+  .payment-summary{align-items:flex-start; flex-direction:column;}
+  .payment-summary .amount{text-align:left;}
+}
+@media(max-width:520px){
+  .topbar .right>span:nth-child(2){display:none;}
+  .profile-label{display:none;}
+  .content{padding:18px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ================= AUTH ================= -->
+<div id="view-auth">
+  <div class="auth-left">
+    <div class="glow g1"></div><div class="glow g2"></div>
+    <div class="brand-mark"><div class="dot"></div><span>NexusFMA</span></div>
+    <h1>Firewall change,<br>governed by AI.</h1>
+    <p class="lede">Unify Cisco, Juniper and Fortinet policy under one control plane — every change explained, risky ones approved by a human, every rollback verified.</p>
+    <div class="home-pitch">
+      <h2>Why pay extra to manage firewalls?</h2>
+      <p>Switch to NexusFMA for reliable, autonomous firewall management.</p>
+    </div>
+  </div>
+  <div class="auth-right">
+    <div class="auth-box">
+      <div class="tabs">
+        <button class="tab-btn active" id="tab-login" onclick="switchTab('login')">Log in</button>
+        <button class="tab-btn" id="tab-signup" onclick="switchTab('signup')">Create account</button>
+      </div>
+
+      <div id="pane-login">
+        <h2>Welcome back</h2>
+        <p class="sub">Log in to your security operations console.</p>
+        <div class="field"><label>Work email</label><input type="email" id="li-email" placeholder="you@company.com"></div>
+        <div class="field"><label>Password</label><input type="password" id="li-pass" placeholder="••••••••"></div>
+        <div class="err" id="li-err">Enter an email and password to continue.</div>
+        <button class="btn-primary" onclick="doLogin()">Log in</button>
+        <p class="auth-foot">Existing companies land directly in their console.</p>
+      </div>
+
+      <div id="pane-signup" style="display:none;">
+        <h2>Create your company ID</h2>
+        <p class="sub">New companies choose a plan right after this step.</p>
+        <div class="field"><label>Company name</label><input type="text" id="su-company" placeholder="Acme Networks Inc."></div>
+        <div class="field"><label>Work email</label><input type="email" id="su-email" placeholder="you@company.com"></div>
+        <div class="field"><label>Password</label><input type="password" id="su-pass" placeholder="Create a password"></div>
+        <div class="err" id="su-err">Fill in all fields to create your ID.</div>
+        <button class="btn-primary" onclick="doSignup()">Create ID & continue</button>
+        <p class="auth-foot">You'll be redirected to subscription plans next.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= SUBSCRIPTION ================= -->
+<div id="view-sub">
+  <button class="back-button view-back" type="button" aria-label="Go to previous page" title="Go back" onclick="goBack()">←</button>
+  <div class="glow"></div>
+  <div class="sub-head">
+    <div class="eyebrow">STEP 2 OF 2</div>
+    <h1 id="sub-company-name">Choose a plan for your company</h1>
+    <p>Pricing scales with protected infrastructure, not seats. You can change tier anytime from Settings — nothing is provisioned until you confirm.</p>
+  </div>
+  <div class="plans">
+    <div class="plan-card">
+      <div class="plan-dot" style="background:#22c55e"></div>
+      <div class="pname">Growth</div>
+      <div class="pmin">₹50,000/month minimum</div>
+      <div class="price">Up to 25<span> devices</span></div>
+      <ul>
+        <li>25 network devices, 3 firewalls</li>
+        <li>2 cloud accounts, 1 Kubernetes cluster</li>
+        <li>100 compliance rules</li>
+        <li>AI analysis & real-time monitoring</li>
+        <li>Low-risk autonomous remediation</li>
+        <li>Human approval workflow</li>
+      </ul>
+      <div class="plan-note">Additional devices billed separately (e.g. 25 devices ≈ ₹50,000/mo) · ≈ ₹6 lakh/year</div>
+      <button onclick="selectPlan('Growth')">Choose Growth</button>
+    </div>
+    <div class="plan-card feat">
+      <div class="badge">MOST DEPLOYED</div>
+      <div class="plan-dot" style="background:#3b82f6"></div>
+      <div class="pname">Business</div>
+      <div class="pmin">₹1,25,000/month minimum</div>
+      <div class="price">Up to 100<span> devices</span></div>
+      <ul>
+        <li>100 network devices, 10 firewalls</li>
+        <li>10 cloud accounts, 5 Kubernetes clusters</li>
+        <li>300+ compliance rules</li>
+        <li>Advanced AI + autonomous remediation</li>
+        <li>Rollback, API access</li>
+        <li>RBAC & SIEM integration</li>
+      </ul>
+      <div class="plan-note">Billed annually · ≈ ₹15 lakh/year</div>
+      <button onclick="selectPlan('Business')">Choose Business</button>
+    </div>
+    <div class="plan-card">
+      <div class="plan-dot" style="background:#a855f7"></div>
+      <div class="pname">Enterprise</div>
+      <div class="pmin">₹3–5 lakh/month starting</div>
+      <div class="price">500+<span> devices</span></div>
+      <ul>
+        <li>500+ devices, large firewall environments</li>
+        <li>Multi-cloud + Kubernetes</li>
+        <li>Custom compliance rules</li>
+        <li>Advanced automation</li>
+        <li>SSO & dedicated support</li>
+        <li>High availability, custom integrations</li>
+      </ul>
+      <div class="plan-note">For larger organizations · ≈ ₹36–60 lakh/year</div>
+      <button onclick="selectPlan('Enterprise')">Talk to sales</button>
+    </div>
+  </div>
+  <div class="gate-strip">
+    <div class="gt">Same automation gate on every plan</div>
+    <div class="gate-flow">
+      <div class="seg"><span class="k ok">Low risk → Automatic</span></div>
+      <span class="arrow">·</span>
+      <div class="seg"><span class="k warn">Medium → Human approval</span></div>
+      <span class="arrow">·</span>
+      <div class="seg"><span class="k danger">High → Human required</span></div>
+      <span class="arrow">·</span>
+      <div class="seg"><span class="k">Verification → Rollback if necessary</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= PAYMENT HANDOFF ================= -->
+<div id="view-payment" class="payment-view">
+  <button class="back-button view-back" type="button" aria-label="Go to previous page" title="Go back" onclick="goBack()">←</button>
+  <div class="glow"></div>
+  <main class="payment-box">
+    <div class="sub-head" style="text-align:left; margin:0 0 28px;">
+      <div class="eyebrow">PAYMENT</div>
+      <h1>Complete your subscription</h1>
+      <p class="payment-intro">Your selected plan is ready. Choose direct checkout assistance or talk with our sales team.</p>
+    </div>
+    <section class="payment-summary" aria-live="polite">
+      <div><div class="label">Selected plan</div><div class="selected-plan" id="payment-plan"></div></div>
+      <div class="amount" id="payment-price"></div>
+    </section>
+    <section class="payment-choice">
+      <h2>Pay directly</h2>
+      <p>Request a secure checkout link for this plan. Online payment processing is not configured on this page yet, so no payment will be taken here.</p>
+      <a id="checkout-request" href="mailto:sales@nexusfma.com">Request secure checkout link</a>
+    </section>
+    <section class="payment-choice">
+      <h2>Contact sales</h2>
+      <p>Discuss billing, deployment needs, or an enterprise agreement with our team.</p>
+      <a id="sales-request" href="mailto:sales@nexusfma.com">Contact sales</a>
+    </section>
+    <p class="payment-note">This page will remain open while your email app starts a message. Replace the sales email in the page settings if your team uses a different address.</p>
+  </main>
+</div>
+
+<!-- ================= DASHBOARD ================= -->
+<div id="view-dash">
+  <div class="shell">
+    <div class="rail" id="dashboard-nav">
+      <button class="back-button dash-back" id="dash-back" type="button" aria-label="Go to previous page" title="Go back" onclick="goBack()" hidden>←</button>
+      <div class="brand-mark"><div class="dot"></div><span>NexusFMA</span></div>
+      <button class="nav-item active" onclick="switchPage('overview',this)"><span class="ic">◇</span>Overview</button>
+      <button class="nav-item" onclick="switchPage('rules',this)"><span class="ic">▤</span>Rules</button>
+      <button class="nav-item" onclick="switchPage('remediation',this)"><span class="ic">⚙</span>Remediation</button>
+      <button class="nav-item" onclick="switchPage('audit',this)"><span class="ic">◫</span>Audit & Rollback</button>
+      <div class="rail-foot" id="rail-plan">Plan: Operations</div>
+    </div>
+    <button class="nav-scrim" id="nav-scrim" aria-label="Close navigation" onclick="toggleNav(false)"></button>
+    <div class="main">
+      <div class="topbar">
+        <button class="menu-toggle" id="menu-toggle" aria-label="Open navigation" aria-controls="dashboard-nav" aria-expanded="false" onclick="toggleNav()">☰</button>
+        <div class="co"><span class="pulse"></span><span id="topbar-co">Acme Networks Inc.</span></div>
+        <div class="right">
+          <span class="plan-pill" id="topbar-plan">Operations plan</span><span>3 devices · live</span>
+          <details class="profile-menu">
+            <summary aria-label="Open profile menu"><span class="profile-avatar" id="profile-avatar">A</span><span class="profile-label">Profile</span></summary>
+            <div class="profile-dropdown">
+              <strong id="profile-company">Acme Networks Inc.</strong>
+              <span id="profile-email">Signed in</span>
+              <button type="button" onclick="logout()">Log out</button>
+            </div>
+          </details>
+        </div>
+      </div>
+      <div class="content">
+
+        <div class="page active" id="page-overview">
+          <div class="pg-head"><div><h1>Overview</h1><p>Live posture across Cisco, Juniper and Fortinet.</p></div></div>
+          <div class="stats">
+            <div class="stat"><div class="lbl">Managed rules</div><div class="val">20</div></div>
+            <div class="stat"><div class="lbl">Devices online</div><div class="val ok">3 / 3</div></div>
+            <div class="stat"><div class="lbl">Pending approval</div><div class="val warn">1</div></div>
+            <div class="stat"><div class="lbl">High-risk this week</div><div class="val danger">2</div></div>
+          </div>
+          <div class="grid2">
+            <div class="panel">
+              <h3>Live change feed</h3>
+              <div class="ph-sub">Simulated real-time events across the fleet</div>
+              <div class="feed" id="live-feed"></div>
+            </div>
+            <div>
+              <div class="panel">
+                <h3>Fleet by vendor</h3>
+                <div class="ph-sub">Sync status</div>
+                <div class="topo-row"><div class="l"><span class="pulse"></span>Cisco · edge-fw-01</div><span class="tag-mini">Synced</span></div>
+                <div class="topo-row"><div class="l"><span class="pulse"></span>Juniper · core-fw-02</div><span class="tag-mini">Synced</span></div>
+                <div class="topo-row"><div class="l"><span class="pulse warn"></span>Fortinet · dc-fw-03</div><span class="tag-mini">1 pending</span></div>
+              </div>
+              <div class="panel">
+                <h3>Automated remediations</h3>
+                <div class="ph-sub">3 configured for this environment</div>
+                <div class="topo-row"><div class="l">Anomalous outbound block</div><span class="chip ok">Active</span></div>
+                <div class="topo-row"><div class="l">SSH brute-force rate limit</div><span class="chip ok">Active</span></div>
+                <div class="topo-row"><div class="l">Exposed NAT quarantine</div><span class="chip warn">Awaiting approval</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="page" id="page-rules">
+          <div class="pg-head"><div><h1>Rules</h1><p>20 policy rules across the managed fleet. Click a rule for its AI explanation.</p></div></div>
+          <div class="panel" style="padding:0;">
+            <table>
+              <thead><tr><th>Rule</th><th>Vendor</th><th>Action</th><th>Risk</th><th>Status</th><th></th></tr></thead>
+              <tbody id="rules-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="page" id="page-remediation">
+          <div class="pg-head"><div><h1>Remediation</h1><p>Automated responses. High-risk actions require human approval before they apply.</p></div></div>
+          <div id="rem-list"></div>
+        </div>
+
+        <div class="page" id="page-audit">
+          <div class="pg-head"><div><h1>Audit & Rollback</h1><p>Every applied change is verified, then held for rollback.</p></div></div>
+          <div class="panel" style="padding:0;">
+            <table>
+              <thead><tr><th>Time</th><th>Change</th><th>Verification</th><th>Rollback</th></tr></thead>
+              <tbody id="audit-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Explain modal -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <span class="ai-badge">✦ AI explanation</span>
+    <h3 id="modal-title">Rule</h3>
+    <div class="rid-line" id="modal-rid">RULE-000</div>
+    <p class="body" id="modal-body"></p>
+    <button class="modal-close" onclick="closeModal()">Close</button>
+  </div>
+</div>
+
+<script>
+/* ---------- AUTH ---------- */
+function switchTab(t){
+  document.getElementById('tab-login').classList.toggle('active', t==='login');
+  document.getElementById('tab-signup').classList.toggle('active', t==='signup');
+  document.getElementById('pane-login').style.display = t==='login' ? 'block':'none';
+  document.getElementById('pane-signup').style.display = t==='signup' ? 'block':'none';
+  updateBackButtons();
+}
+let companyName = 'Acme Networks Inc.';
+let currentEmail = '';
+let viewHistory = [];
+const SALES_EMAIL = 'sales@nexusfma.com';
+const DEMO_EMAIL='abcd@gmail.com', DEMO_PASS='abcd1234';
+function showView(viewId, remember=true){
+  const viewIds = ['view-auth','view-sub','view-payment','view-dash'];
+  const currentView = viewIds.find(id => getComputedStyle(document.getElementById(id)).display !== 'none');
+  if(remember && currentView && currentView !== viewId) viewHistory.push(currentView);
+  viewIds.forEach(id => document.getElementById(id).style.display = id === viewId ? (id === 'view-auth' ? 'flex' : 'block') : 'none');
+  updateBackButtons();
+}
+function updateBackButtons(){
+  document.getElementById('dash-back').hidden = viewHistory.length === 0;
+}
+function goBack(){
+  if(viewHistory.length){
+    showView(viewHistory.pop(), false);
+  } else if(document.getElementById('view-auth').style.display !== 'none' && document.getElementById('pane-signup').style.display !== 'none'){
+    switchTab('login');
+  }
+}
+function doLogin(){
+  const e=document.getElementById('li-email').value.trim(), p=document.getElementById('li-pass').value;
+  const errEl=document.getElementById('li-err');
+  if(!e||!p){ errEl.textContent='Enter an email and password to continue.'; errEl.style.display='block'; return; }
+  if(e!==DEMO_EMAIL || p!==DEMO_PASS){ errEl.textContent='Incorrect email or password. Check your credentials and try again.'; errEl.style.display='block'; return; }
+  errEl.style.display='none';
+  currentEmail = e;
+  enterDashboard();
+}
+const GMAIL_RE = /^[a-zA-Z0-9](?:[a-zA-Z0-9._]*[a-zA-Z0-9])?@gmail\.com$/;
+function doSignup(){
+  const c=document.getElementById('su-company').value.trim(), e=document.getElementById('su-email').value.trim(), p=document.getElementById('su-pass').value;
+  const errEl=document.getElementById('su-err');
+  if(!c||!e||!p){ errEl.textContent='Fill in all fields to create your ID.'; errEl.style.display='block'; return; }
+  if(!GMAIL_RE.test(e)){ errEl.textContent='Enter a valid Gmail address, e.g. name@gmail.com.'; errEl.style.display='block'; return; }
+  if(p.length<6){ errEl.textContent='Password must be at least 6 characters.'; errEl.style.display='block'; return; }
+  errEl.style.display='none';
+  companyName = c;
+  currentEmail = e;
+  document.getElementById('sub-company-name').textContent = `Choose a plan for ${c}`;
+  showView('view-sub');
+}
+function selectPlan(plan){
+  const prices = {Growth:'₹50,000/month minimum',Business:'₹1,25,000/month minimum',Enterprise:'₹3–5 lakh/month starting'};
+  const subject = encodeURIComponent(`${plan} plan payment request - ${companyName}`);
+  const body = encodeURIComponent(`Hello NexusFMA Sales,\n\nPlease help us proceed with the ${plan} plan for ${companyName}.\n\nPlease provide a secure direct checkout link or contact us to discuss payment.`);
+  const mailto = `mailto:${SALES_EMAIL}?subject=${subject}&body=${body}`;
+  document.getElementById('payment-plan').textContent = `${plan} for ${companyName}`;
+  document.getElementById('payment-price').textContent = prices[plan];
+  document.getElementById('checkout-request').href = mailto;
+  document.getElementById('sales-request').href = `mailto:${SALES_EMAIL}?subject=${encodeURIComponent(`Sales inquiry - ${plan} plan`)}&body=${body}`;
+  showView('view-payment');
+}
+function enterDashboard(){
+  showView('view-dash');
+  document.getElementById('topbar-co').textContent = companyName;
+  document.getElementById('profile-company').textContent = companyName;
+  document.getElementById('profile-email').textContent = currentEmail || 'Signed in';
+  document.getElementById('profile-avatar').textContent = companyName.trim().charAt(0).toUpperCase() || 'A';
+  buildRules(); buildRemediation(); buildAudit(); startFeed();
+}
+
+function toggleNav(forceOpen){
+  const isOpen = forceOpen ?? !document.querySelector('.rail').classList.contains('open');
+  document.querySelector('.rail').classList.toggle('open', isOpen);
+  document.getElementById('nav-scrim').classList.toggle('show', isOpen);
+  document.getElementById('menu-toggle').setAttribute('aria-expanded', String(isOpen));
+  document.getElementById('menu-toggle').setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
+}
+function logout(){
+  document.querySelector('.profile-menu').open = false;
+  toggleNav(false);
+  viewHistory = [];
+  showView('view-auth', false);
+  document.getElementById('li-pass').value='';
+  currentEmail = '';
+  switchTab('login');
+}
+
+/* ---------- NAV ---------- */
+function switchPage(p, el){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
+  el.classList.add('active');
+  toggleNav(false);
+}
+
+/* ---------- MOCK DATA ---------- */
+const vendors=['Cisco','Juniper','Fortinet'];
+const actions=['Allow','Deny','Rate-limit','NAT','Log-only'];
+const zones=['DMZ','Internal','Guest-VLAN','DC-Core','Edge','Mgmt'];
+let rules=[];
+for(let i=1;i<=20;i++){
+  const risk = i%9===0?'high': i%4===0?'medium':'low';
+  rules.push({
+    id:'RULE-'+String(1000+i),
+    vendor:vendors[i%3],
+    action:actions[i%actions.length],
+    zone:zones[i%zones.length],
+    risk,
+    status: risk==='high' && i%18===0 ? 'pending':'active'
+  });
+}
+function riskChip(r){
+  if(r==='high') return '<span class="chip danger">High</span>';
+  if(r==='medium') return '<span class="chip warn">Medium</span>';
+  return '<span class="chip ok">Low</span>';
+}
+function buildRules(){
+  const body=document.getElementById('rules-body');
+  body.innerHTML = rules.map(r=>`
+    <tr class="rulerow">
+      <td class="rid">${r.id}</td>
+      <td><span class="vtag">${r.vendor}</span></td>
+      <td>${r.action} · ${r.zone}</td>
+      <td>${riskChip(r.risk)}</td>
+      <td>${r.status==='pending'?'<span class="chip warn">Awaiting approval</span>':'<span class="chip ok">Active</span>'}</td>
+      <td><button class="explain-btn" onclick="explainRule('${r.id}')">Explain</button></td>
+    </tr>`).join('');
+}
+const explainTemplates = {
+  low:(r)=>`This ${r.action.toLowerCase()} rule on ${r.vendor} governs traffic in the ${r.zone} zone. It matches a narrow, well-established pattern consistent with existing baseline policy, so the model scores it low-risk and applied it automatically. No overlapping rule conflicts were found.`,
+  medium:(r)=>`This ${r.action.toLowerCase()} rule on ${r.vendor} touches the ${r.zone} zone with a broader match than typical baseline rules. The model flagged it medium-risk because it slightly widens exposure versus the last known-good config, though no active threat indicators were tied to it.`,
+  high:(r)=>`This ${r.action.toLowerCase()} rule on ${r.vendor} affects the ${r.zone} zone and would materially change exposure — it overlaps a rule protecting a sensitive segment. The model scored it high-risk and routed it to human approval rather than auto-applying it.`
+};
+function explainRule(id){
+  const r = rules.find(x=>x.id===id);
+  document.getElementById('modal-title').textContent = `${r.action} · ${r.zone}`;
+  document.getElementById('modal-rid').textContent = `${r.id} — ${r.vendor}`;
+  document.getElementById('modal-body').textContent = explainTemplates[r.risk](r);
+  document.getElementById('modal-bg').classList.add('show');
+}
+function closeModal(){ document.getElementById('modal-bg').classList.remove('show'); }
+
+/* ---------- REMEDIATION ---------- */
+let remediations=[
+  {name:'Anomalous outbound traffic block', vendor:'Fortinet', risk:'low', desc:'Automatically blocks outbound traffic matching anomalous volume/destination patterns on VLAN 40.', steps:['1. Detect anomaly signature','2. Apply deny rule at dc-fw-03','3. Verify traffic drop','4. Log to audit trail'], status:'applied'},
+  {name:'SSH brute-force source rate-limit', vendor:'Cisco', risk:'low', desc:'Rate-limits source IPs exceeding SSH auth-failure thresholds on the edge firewall.', steps:['1. Detect auth-failure burst','2. Apply rate-limit ACL','3. Verify connection throttling','4. Log to audit trail'], status:'applied'},
+  {name:'Exposed NAT rule quarantine', vendor:'Juniper', risk:'high', desc:'Quarantines a misconfigured NAT rule exposing an internal host to the DMZ. Changes internal reachability, so it requires sign-off.', steps:['1. Detect exposure via config diff','2. Hold for human approval','3. Apply quarantine NAT rule','4. Verify host unreachable from DMZ','5. Log to audit trail'], status:'pending'}
+];
+function buildRemediation(){
+  const wrap=document.getElementById('rem-list');
+  wrap.innerHTML = remediations.map((r,i)=>`
+    <div class="rem-card">
+      <div class="rem-top">
+        <div><span class="vtag">${r.vendor}</span>${riskChip(r.risk)}<h4 style="margin-top:8px;">${r.name}</h4></div>
+      </div>
+      <div class="rem-desc">${r.desc}</div>
+      <div class="rem-steps">${r.steps.join('<br>')}</div>
+      <div class="rem-actions" id="rem-actions-${i}">${remActionsHTML(r,i)}</div>
+    </div>`).join('');
+}
+function remActionsHTML(r,i){
+  if(r.status==='applied') return `<span class="chip ok">Applied & verified</span><button class="btn-sm" onclick="rollback(${i})">Rollback</button>`;
+  if(r.status==='pending') return `<button class="btn-sm ok" onclick="approve(${i})">Approve</button><button class="btn-sm danger-o" onclick="reject(${i})">Reject</button><span class="status-line">Requires human approval — high risk</span>`;
+  if(r.status==='approved') return `<span class="chip ok">Approved · applying…</span>`;
+  if(r.status==='rejected') return `<span class="chip danger">Rejected</span>`;
+}
+function approve(i){
+  remediations[i].status='approved'; buildRemediation();
+  setTimeout(()=>{ remediations[i].status='applied'; buildRemediation(); addAudit(remediations[i].name, remediations[i].vendor); }, 1200);
+}
+function reject(i){ remediations[i].status='rejected'; buildRemediation(); }
+function rollback(i){
+  remediations[i].status='pending'; buildRemediation();
+  addAudit('Rollback — '+remediations[i].name, remediations[i].vendor, true);
+}
+
+/* ---------- AUDIT ---------- */
+let auditLog=[
+  {t:'09:14:02', change:'Applied SSH brute-force rate-limit', vendor:'Cisco', verified:true, rollback:true},
+  {t:'08:52:41', change:'Applied outbound anomaly block', vendor:'Fortinet', verified:true, rollback:true}
+];
+function buildAudit(){
+  const body=document.getElementById('audit-body');
+  body.innerHTML = auditLog.map(a=>`
+    <tr>
+      <td class="rid">${a.t}</td>
+      <td><span class="vtag">${a.vendor}</span> ${a.change}</td>
+      <td>${a.verified?'<span class="chip ok">Verified</span>':'<span class="chip warn">Verifying…</span>'}</td>
+      <td>${a.rollback?'<button class="btn-sm">Rollback</button>':'—'}</td>
+    </tr>`).join('');
+}
+function addAudit(change, vendor, verified){
+  const now=new Date(); const t=now.toTimeString().slice(0,8);
+  auditLog.unshift({t, change, vendor, verified: !!verified===false?true:true, rollback:true});
+  buildAudit();
+}
+
+/* ---------- SIMULATED LIVE FEED ---------- */
+const feedMsgs = [
+  (v)=>`<b>${v}</b> policy sync completed — no drift detected`,
+  (v)=>`AI scored a new <b>${v}</b> change as low-risk and auto-applied it`,
+  (v)=>`<b>${v}</b> flagged a rule as high-risk — routed for approval`,
+  (v)=>`Verification passed for a recent change on <b>${v}</b>`,
+  (v)=>`Heartbeat OK — <b>${v}</b> device reachable`,
+];
+function startFeed(){
+  const feed=document.getElementById('live-feed');
+  function push(){
+    const v=vendors[Math.floor(Math.random()*3)];
+    const msg=feedMsgs[Math.floor(Math.random()*feedMsgs.length)](v);
+    const now=new Date().toTimeString().slice(0,8);
+    const el=document.createElement('div');
+    el.className='feed-item';
+    el.innerHTML=`<span class="t">${now}</span><span class="m">${msg}</span>`;
+    feed.prepend(el);
+    while(feed.children.length>12) feed.removeChild(feed.lastChild);
+  }
+  push(); push();
+  setInterval(push, 4000);
+}
+</script>
+</body>
+</html>
